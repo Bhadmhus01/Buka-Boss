@@ -1,0 +1,31 @@
+# render.yaml · Render Blueprint for Buka Boss: Lagos Street Kitchen & Cook-Off
+# Deploy for ₦0 (Free Plan):
+# 1. Push this project to a GitHub repository
+# 2. On https://dashboard.render.com -> Click "New +" -> "Blueprint"
+# 3. Connect your repository — Render will read this render.yaml and deploy automatically!
+
+services:
+  - type: web
+    name: buka-boss-lagos-life
+    runtime: node
+    plan: free
+    region: frankfurt # Closest low-latency EU region to Lagos, Nigeria
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: VATAR_API_BASE
+        value: https://lagoslife.app/api/games/v1
+      - key: STRICT_VATAR_CSP
+        value: "1"
+      # Paste your keys from https://lagoslife.app/developers/keys when prompted by Render
+      # (or leave default first to get your https://*.onrender.com URL, then paste keys in Render -> Environment)
+      - key: VATAR_SECRET
+        sync: false
+      - key: VATAR_WEBHOOK_SECRET
+        sync: false
+      - key: VATAR_RESULTS_SECRET
+        sync: false

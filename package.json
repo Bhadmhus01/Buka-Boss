@@ -1,0 +1,14 @@
+{
+  "name": "buka-boss-lagos-life",
+  "version": "1.0.0",
+  "description": "Buka Boss: Lagos Street Kitchen & 1v1 Cook-Off — Built for Lagos Life (Vatar Games SDK v1)",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

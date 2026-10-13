@@ -1,0 +1,189 @@
+{
+  "players": {
+    "t_test_verifier": {
+      "playerId": "t_test_verifier",
+      "name": "Verifier",
+      "nairaEarned": 1500,
+      "peppers": 1150,
+      "bestScore": 0,
+      "shiftsPlayed": 0,
+      "ordersServed": 0,
+      "unlockedKitchens": [
+        "yaba_suya"
+      ],
+      "kitchenLevels": {
+        "yaba_suya": {
+          "grillSpeed": 1,
+          "grillSlots": 3,
+          "tipBonus": 1,
+          "patienceBoost": 1
+        },
+        "shitta_amala": {
+          "grillSpeed": 1,
+          "grillSlots": 3,
+          "tipBonus": 1,
+          "patienceBoost": 1
+        },
+        "ikeja_shawarma": {
+          "grillSpeed": 1,
+          "grillSlots": 3,
+          "tipBonus": 1,
+          "patienceBoost": 1
+        },
+        "vi_quilox": {
+          "grillSpeed": 1,
+          "grillSlots": 3,
+          "tipBonus": 1,
+          "patienceBoost": 1
+        }
+      },
+      "boosters": {
+        "rushBoosts": 8,
+        "autoChefs": 1,
+        "jaraRefills": 2
+      },
+      "ownedOneOffs": [],
+      "purchases": [
+        {
+          "purchaseId": "b5d64f32defafd5afd95",
+          "productId": "spices_pack_100",
+          "amount": 100,
+          "deliveredAt": 1791858078106
+        },
+        {
+          "purchaseId": "39cd4c545106ca60fc32",
+          "productId": "spices_pack_100",
+          "amount": 100,
+          "deliveredAt": 1791858078165
+        }
+      ],
+      "matchesWon": 1,
+      "matchesPlayed": 1,
+      "updatedAt": 1791858078165
+    }
+  },
+  "deliveredPurchases": {
+    "b5d64f32defafd5afd95": {
+      "purchaseId": "b5d64f32defafd5afd95",
+      "productId": "spices_pack_100",
+      "playerId": "t_test_verifier",
+      "amount": 100,
+      "deliveredAt": 1791858078106
+    },
+    "39cd4c545106ca60fc32": {
+      "purchaseId": "39cd4c545106ca60fc32",
+      "productId": "spices_pack_100",
+      "playerId": "t_test_verifier",
+      "amount": 100,
+      "deliveredAt": 1791858078165
+    }
+  },
+  "sandboxPurchases": {
+    "b5d64f32defafd5afd95": {
+      "id": "b5d64f32defafd5afd95",
+      "productId": "spices_pack_100",
+      "playerId": "t_test_verifier",
+      "amount": 100,
+      "currency": "NGN",
+      "status": "delivered",
+      "createdAt": 1791858078053,
+      "mode": "test",
+      "deliveredAt": 1791858078106
+    },
+    "39cd4c545106ca60fc32": {
+      "id": "39cd4c545106ca60fc32",
+      "productId": "spices_pack_100",
+      "playerId": "t_test_verifier",
+      "amount": 100,
+      "currency": "NGN",
+      "status": "delivered",
+      "createdAt": 1791858078117,
+      "mode": "test",
+      "deliveredAt": 1791858078166
+    }
+  },
+  "sandboxMatches": {
+    "m_0fe0b323449778f4": {
+      "id": "m_0fe0b323449778f4",
+      "code": "4BF02A",
+      "status": "done",
+      "stake": 1000,
+      "seats": 2,
+      "players": [
+        {
+          "id": "t_test_verifier",
+          "playerId": "t_test_verifier",
+          "name": "Tunde_Eko"
+        },
+        {
+          "id": "t_bot_rival",
+          "playerId": "t_bot_rival",
+          "name": "Chinedu_Yaba"
+        }
+      ],
+      "me": "t_test_verifier",
+      "winner": "t_test_verifier",
+      "result": "win",
+      "nonce": "nonce_27f1c354b4a2b4e6",
+      "mode": "test",
+      "createdAt": 1791858078181,
+      "startedAt": 1791858078181,
+      "endsAt": 1791858138181,
+      "settledAt": 1791858078227,
+      "pot": 2000,
+      "payout": 1900,
+      "creatorShare": 40
+    }
+  },
+  "handledWebhooks": {
+    "evt_da0f7a7018ca48a1": {
+      "at": 1791858078165,
+      "type": "purchase.paid"
+    }
+  },
+  "leaderboard": [
+    {
+      "playerId": "p_eko_01",
+      "name": "ChiefObi_VI",
+      "score": 48500
+    },
+    {
+      "playerId": "p_eko_02",
+      "name": "SuyaQueen_Yaba",
+      "score": 39200
+    },
+    {
+      "playerId": "p_eko_03",
+      "name": "ToluTechBro",
+      "score": 31800
+    },
+    {
+      "playerId": "p_eko_04",
+      "name": "AmalaBoss_Shitta",
+      "score": 26400
+    },
+    {
+      "playerId": "p_eko_05",
+      "name": "DanfoKing_Oshodi",
+      "score": 19750
+    },
+    {
+      "playerId": "p_eko_06",
+      "name": "MamaBisi_Surulere",
+      "score": 15200
+    },
+    {
+      "playerId": "p_eko_07",
+      "name": "Odogwu_Lekki",
+      "score": 11800
+    }
+  ],
+  "checklist": {
+    "sdkInitSeen": true,
+    "testPurchaseMade": true,
+    "purchaseVerifiedByServer": true,
+    "purchaseMarkedDelivered": true,
+    "webhookAnswered2xx": true,
+    "matchCreatedJoinedSettled": true
+  }
+}

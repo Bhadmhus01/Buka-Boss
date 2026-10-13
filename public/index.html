@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#120d0a" />
+  <title>Buka Boss — Lagos Street Kitchen &amp; Cook-Off</title>
+  <meta name="description" content="Run the hottest Suya, Amala &amp; Shawarma spots in Lagos! Beat NEPA blackouts, serve rush-hour customers, and battle in 1v1 Cook-Offs." />
+  <link rel="icon" type="image/png" href="/assets/icon-512.png" />
+  <!-- Official Vatar Games SDK v1 (https://lagoslife.app/developers/docs) -->
+  <script src="https://lagoslife.app/sdk/vatar-games-v1.js"></script>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div id="app-shell" class="app-shell">
+    <!-- Left/Main Mobile-First Game Frame (375x812 reference portrait, fills 100dvh on phones) -->
+    <div id="game-viewport" class="game-viewport">
+
+      <!-- Top HUD Bar -->
+      <header class="hud-header">
+        <div class="player-pill" id="player-pill" title="Vatar Player Profile">
+          <div class="avatar-circle" id="player-avatar">🧑🏾‍🍳</div>
+          <div class="player-meta">
+            <span class="player-name" id="player-name">Loading…</span>
+            <span class="sdk-badge" id="sdk-mode-badge">VATAR SDK</span>
+          </div>
+        </div>
+
+        <div class="currency-strip">
+          <div class="currency-chip naira-chip" title="Kitchen Cash (Earned in shifts)">
+            <span class="c-icon">₦</span>
+            <span id="hud-naira">1,500</span>
+          </div>
+          <div class="currency-chip pepper-chip" id="open-shop-peppers" title="Gold Peppers — Tap to get more">
+            <span class="c-icon">🌶️</span>
+            <span id="hud-peppers">150</span>
+            <span class="plus-badge">+</span>
+          </div>
+        </div>
+
+        <div class="hud-actions">
+          <button id="btn-sound" class="icon-btn" aria-label="Toggle Sound" title="Toggle Sound">🔊</button>
+          <button id="btn-sandbox-drawer" class="icon-btn dev-btn" aria-label="Vatar Sandbox Tools" title="Vatar Sandbox & Checklist">🛠️</button>
+        </div>
+      </header>
+
+      <!-- Pause Banner (Shown when Vatar.onPause fires or Pay Sheet opens) -->
+      <div id="pause-overlay" class="pause-overlay hidden">
+        <div class="pause-card">
+          <div class="pause-emoji">⏸️</div>
+          <h3>Shift Paused</h3>
+          <p>Timers &amp; kitchen audio are paused while Lagos Life sheet is open.</p>
+          <button id="btn-resume-manual" class="primary-btn">Resume Hustle ▶</button>
+        </div>
+      </div>
+
+      <!-- Main Screen Container -->
+      <main class="screen-container">
+
+        <!-- ==============================================================
+             TAB 1: HOME / KITCHEN HUB
+             ============================================================== -->
+        <section id="screen-home" class="screen active">
+          <div class="hero-banner">
+            <div class="hero-tag-row">
+              <span class="location-pill" id="active-kitchen-badge">📍 Yaba Night Junction</span>
+              <span class="best-score-pill">🏆 Best: <b id="home-best-score">0</b></span>
+            </div>
+            <h1 class="game-title">BUKA BOSS</h1>
+            <p class="game-subtitle">Lagos Street Kitchen &amp; 1v1 Cook-Off</p>
+
+            <!-- Active Perks Strip -->
+            <div class="perks-strip" id="active-perks-strip">
+              <span class="perk-tag locked" id="perk-tag-tips">💰 2× Tips: Off</span>
+              <span class="perk-tag locked" id="perk-tag-solar">☀️ Solar Inverter: Off</span>
+              <span class="perk-tag locked" id="perk-tag-odogwu">👑 Odogwu Pass: Off</span>
+            </div>
+
+            <div class="hero-cta-row">
+              <button id="btn-start-shift" class="cta-play-btn">
+                <span class="cta-main">🔥 START SHIFT</span>
+                <span class="cta-sub" id="start-shift-sub">Yaba Night Junction · 75s Rush</span>
+              </button>
+              <button id="btn-quick-1v1" class="cta-versus-btn">
+                <span class="cta-main">⚔️ 1v1 COOK-OFF</span>
+                <span class="cta-sub">Stake Lagos Life ₦</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Select Lagos Kitchen Location -->
+          <div class="section-header">
+            <h2>🗺️ Lagos Kitchen Locations</h2>
+            <span class="section-hint">Higher spots pay bigger Naira tips!</span>
+          </div>
+          <div id="kitchen-list" class="kitchen-list"></div>
+
+          <!-- Kitchen Equipment Upgrades -->
+          <div class="section-header">
+            <h2>⚡ Upgrade Current Kitchen</h2>
+            <span class="section-hint" id="upgrade-kitchen-name">Yaba Night Junction</span>
+          </div>
+          <div id="upgrade-grid" class="upgrade-grid"></div>
+        </section>
+
+        <!-- ==============================================================
+             TAB 2: ACTIVE KITCHEN SHIFT (GAMEPLAY SCREEN)
+             ============================================================== -->
+        <section id="screen-play" class="screen">
+          <!-- Shift Status Top Strip -->
+          <div class="shift-top-bar">
+            <div class="shift-stat">
+              <span class="s-label">⏱️ TIME</span>
+              <span class="s-val" id="shift-timer">75s</span>
+            </div>
+            <div class="shift-stat">
+              <span class="s-label">💵 SHIFT NAIRA</span>
+              <span class="s-val gold" id="shift-naira">₦0</span>
+            </div>
+            <div class="shift-stat">
+              <span class="s-label">🔥 COMBO</span>
+              <span class="s-val" id="shift-combo">0×</span>
+            </div>
+            <button id="btn-end-shift" class="mini-end-btn" title="End Shift Early">✕</button>
+          </div>
+
+          <!-- 1v1 Live Match Scoreboard Banner (Only shown during Multiplayer Match) -->
+          <div id="match-live-bar" class="match-live-bar hidden">
+            <div class="match-side me">
+              <span class="m-name" id="match-my-name">You</span>
+              <span class="m-score" id="match-my-score">₦0</span>
+            </div>
+            <div class="match-vs-pill">
+              <span id="match-stake-label">POT ₦1,900</span>
+            </div>
+            <div class="match-side rival">
+              <span class="m-name" id="match-rival-name">Rival</span>
+              <span class="m-score" id="match-rival-score">₦0</span>
+            </div>
+          </div>
+
+          <!-- Owambe Fever Banner -->
+          <div id="fever-banner" class="fever-banner hidden">
+            🎉 OWAMBE RUSH HOUR! 2× NAIRA &amp; SCORE! 🎉
+          </div>
+
+          <!-- NEPA Blackout Alert Overlay Bar -->
+          <div id="nepa-alert" class="nepa-alert hidden">
+            <div class="nepa-text">
+              <strong>⚡ THEY HAVE TAKEN LIGHT! (NEPA)</strong>
+              <span>Grill speed -60%! Pull the generator cord!</span>
+            </div>
+            <button id="btn-crank-gen" class="crank-gen-btn">
+              🔌 CRANK GEN (<span id="gen-cranks">0/3</span>)
+            </button>
+          </div>
+
+          <!-- Customer Counter Area (3 Slots) -->
+          <div class="counter-area">
+            <div id="customer-slots" class="customer-slots"></div>
+          </div>
+
+          <!-- Grill & Stove Area -->
+          <div class="kitchen-station">
+            <div class="station-header">
+              <span>🔥 GRILL &amp; STOVE (Tap Raw Food below, then tap Cooked food to Plate)</span>
+            </div>
+            <div id="grill-slots" class="grill-slots"></div>
+          </div>
+
+          <!-- Active Serving Tray -->
+          <div class="tray-bar">
+            <div class="tray-contents">
+              <span class="tray-label">🍽️ TRAY:</span>
+              <div id="tray-items" class="tray-items">
+                <span class="tray-empty">Tap cooked food &amp; sides to build order…</span>
+              </div>
+            </div>
+            <div class="tray-actions">
+              <button id="btn-serve-order" class="serve-btn" disabled>SERVE!</button>
+              <button id="btn-clear-tray" class="trash-btn" title="Clear Tray">🗑️</button>
+            </div>
+          </div>
+
+          <!-- Ingredient Prep Buttons (2 Cookable Mains + 4 Instant Sides/Drinks) -->
+          <div class="prep-deck">
+            <div class="prep-mains" id="prep-mains"></div>
+            <div class="prep-sides" id="prep-sides"></div>
+          </div>
+
+          <!-- Active Boosters Bar -->
+          <div class="booster-bar">
+            <button id="btn-boost-rush" class="booster-btn">
+              <span class="b-icon">⚡</span>
+              <span class="b-name">Instant Grill</span>
+              <span class="b-count" id="count-boost-rush">2</span>
+            </button>
+            <button id="btn-boost-auto" class="booster-btn">
+              <span class="b-icon">👩🏾‍🍳</span>
+              <span class="b-name">Mama Bisi Auto</span>
+              <span class="b-count" id="count-boost-auto">1</span>
+            </button>
+            <button id="btn-boost-jara" class="booster-btn">
+              <span class="b-icon">🎶</span>
+              <span class="b-name">Sweet Jara</span>
+              <span class="b-count" id="count-boost-jara">2</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- ==============================================================
+             TAB 3: 1v1 MULTIPLAYER COOK-OFF (Vatar.match)
+             ============================================================== -->
+        <section id="screen-versus" class="screen">
+          <div class="versus-hero">
+            <div class="versus-badge">VATAR MULTIPLAYER ARENA</div>
+            <h2>⚔️ 1v1 Lagos Cook-Off</h2>
+            <p>Challenge another Lagosian to a 60-second kitchen showdown! Stake Lagos Life in-game Naira—winner takes the pot (less 5% house cut).</p>
+          </div>
+
+          <div class="stake-selector-card">
+            <h3>1. Pick Match Stake (Lagos Life In-Game ₦)</h3>
+            <div class="stake-pills" id="stake-pills">
+              <button class="stake-pill active" data-stake="0">₦0 Friendly</button>
+              <button class="stake-pill" data-stake="500">₦500</button>
+              <button class="stake-pill" data-stake="1000">₦1,000</button>
+              <button class="stake-pill" data-stake="5000">₦5,000</button>
+            </div>
+            <p class="stake-note">Stakes use Lagos Life in-game money only (confirmed on the world's sheet, never real money).</p>
+          </div>
+
+          <div class="match-actions-grid">
+            <div class="match-card">
+              <h3>⚡ Quick Match</h3>
+              <p>Pair immediately with a player waiting at the same stake (or test vs Sandbox Bot).</p>
+              <button id="btn-match-quick" class="primary-btn full-w">Find Opponent Now</button>
+            </div>
+
+            <div class="match-card">
+              <h3>🏠 Private Room Code</h3>
+              <p>Create a 2-seat match &amp; share the 6-letter code with a friend in Lagos Life.</p>
+              <button id="btn-match-create" class="secondary-btn full-w">Create Room</button>
+              <div id="created-room-box" class="room-code-box hidden">
+                <span>Room Code: <b id="created-room-code">------</b></span>
+                <button id="btn-start-room-bot" class="mini-btn">Start w/ Test Bot</button>
+              </div>
+            </div>
+
+            <div class="match-card">
+              <h3>🔑 Join Friend's Room</h3>
+              <div class="join-input-row">
+                <input type="text" id="input-join-code" maxlength="6" placeholder="6-LETTER CODE" />
+                <button id="btn-match-join" class="secondary-btn">Join</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==============================================================
+             TAB 4: VATAR STORE (In-App Purchases ₦100 - ₦1,500)
+             ============================================================== -->
+        <section id="screen-shop" class="screen">
+          <div class="shop-hero">
+            <div class="shop-badge">OFFICIAL VATAR CHECKOUT</div>
+            <h2>🛒 Eko Kitchen Supply &amp; VIP Passes</h2>
+            <p>Upgrade your hustle with permanent kitchen perks and Gold Pepper packs. Every purchase is verified by our server before delivery.</p>
+          </div>
+
+          <div class="section-header">
+            <h2>👑 Permanent VIP Upgrades (One-Off)</h2>
+            <span class="section-hint">Buy once, keep forever</span>
+          </div>
+          <div id="shop-oneoffs" class="shop-grid"></div>
+
+          <div class="section-header">
+            <h2>🌶️ Consumable Spice &amp; Booster Packs</h2>
+            <span class="section-hint">Instant delivery</span>
+          </div>
+          <div id="shop-consumables" class="shop-grid"></div>
+
+          <div class="section-header">
+            <h2>🔥 Exchange Gold Peppers for Boosters</h2>
+            <span class="section-hint">Spend 🌶️ Peppers</span>
+          </div>
+          <div class="pepper-exchange-row">
+            <button class="exchange-card" data-booster="rushBoosts" data-cost="80">
+              <span class="ex-icon">⚡</span>
+              <span class="ex-title">+1 Instant Grill</span>
+              <span class="ex-cost">🌶️ 80</span>
+            </button>
+            <button class="exchange-card" data-booster="autoChefs" data-cost="120">
+              <span class="ex-icon">👩🏾‍🍳</span>
+              <span class="ex-title">+1 Mama Bisi Auto</span>
+              <span class="ex-cost">🌶️ 120</span>
+            </button>
+            <button class="exchange-card" data-booster="jaraRefills" data-cost="80">
+              <span class="ex-icon">🎶</span>
+              <span class="ex-title">+1 Sweet Jara</span>
+              <span class="ex-cost">🌶️ 80</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- ==============================================================
+             TAB 5: LEADERBOARD (Vatar.leaderboard & Vatar.submitScore)
+             ============================================================== -->
+        <section id="screen-rank" class="screen">
+          <div class="rank-hero">
+            <h2>🏆 Forbes Naija Buka Leaderboard</h2>
+            <p>Ranked by highest single-shift hustle score. Synced via <code>Vatar.submitScore()</code> &amp; <code>Vatar.leaderboard()</code>.</p>
+            <div id="my-rank-banner" class="my-rank-banner">
+              <span>Your Rank: <b id="my-rank-label">#--</b></span>
+              <span>Best Score: <b id="my-rank-score">0</b></span>
+              <button id="btn-refresh-leaderboard" class="mini-btn">↻ Refresh</button>
+            </div>
+          </div>
+
+          <div id="leaderboard-list" class="leaderboard-list"></div>
+        </section>
+
+      </main>
+
+      <!-- Bottom Navigation Bar -->
+      <nav class="bottom-nav" id="bottom-nav">
+        <button class="nav-tab active" data-screen="screen-home">
+          <span class="nav-icon">🏠</span>
+          <span class="nav-label">Kitchens</span>
+        </button>
+        <button class="nav-tab" data-screen="screen-play" id="nav-tab-play">
+          <span class="nav-icon">🔥</span>
+          <span class="nav-label">Cook</span>
+        </button>
+        <button class="nav-tab" data-screen="screen-versus">
+          <span class="nav-icon">⚔️</span>
+          <span class="nav-label">1v1 Stake</span>
+        </button>
+        <button class="nav-tab" data-screen="screen-shop">
+          <span class="nav-icon">🛒</span>
+          <span class="nav-label">VIP Store</span>
+        </button>
+        <button class="nav-tab" data-screen="screen-rank">
+          <span class="nav-icon">🏆</span>
+          <span class="nav-label">Forbes</span>
+        </button>
+      </nav>
+
+      <!-- ==============================================================
+           MODALS (Shift Summary, Vatar Sandbox Pay Sheet, Toast)
+           ============================================================== -->
+      <div id="shift-summary-modal" class="modal-backdrop hidden">
+        <div class="modal-card">
+          <div class="modal-badge" id="summary-badge">SHIFT COMPLETE</div>
+          <h2 id="summary-title">🔥 Odogwu Hustle!</h2>
+          <p id="summary-subtitle">Yaba Night Junction</p>
+
+          <div class="summary-stats">
+            <div class="sum-row">
+              <span>Orders Served</span>
+              <strong id="sum-orders">0</strong>
+            </div>
+            <div class="sum-row">
+              <span>Naira Earned</span>
+              <strong class="gold" id="sum-naira">+₦0</strong>
+            </div>
+            <div class="sum-row">
+              <span>Bonus Gold Peppers</span>
+              <strong class="pepper" id="sum-peppers">+🌶️ 0</strong>
+            </div>
+            <div class="sum-row highlight">
+              <span>Final Shift Score</span>
+              <strong id="sum-score">0</strong>
+            </div>
+          </div>
+
+          <div id="summary-match-box" class="summary-match-box hidden"></div>
+          <div id="summary-score-status" class="summary-score-status">Submitting score to Vatar leaderboard…</div>
+
+          <div class="modal-actions">
+            <button id="btn-summary-again" class="primary-btn">🔥 Another Shift</button>
+            <button id="btn-summary-home" class="secondary-btn">🏠 Kitchen Hub</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Simulated Vatar World Pay Sheet (Used when testing in Local Sandbox Mode) -->
+      <div id="sandbox-paysheet-modal" class="modal-backdrop hidden">
+        <div class="modal-card vatar-sheet">
+          <div class="vatar-sheet-top">
+            <span class="vatar-pill">LAGOS LIFE · VATAR SANDBOX</span>
+            <span class="vatar-test-tag">TEST MODE (NO REAL MONEY)</span>
+          </div>
+          <h3 id="sheet-product-name">Secret Yaji Spice Pack</h3>
+          <p id="sheet-product-desc">+500 Gold Peppers &amp; 3 Instant Grill Rush Boosters</p>
+          <div class="vatar-price-box">
+            <span>Price</span>
+            <strong id="sheet-product-price">₦100</strong>
+          </div>
+          <p class="vatar-note">
+            In live Lagos Life, Vatar opens this sheet over your frame and splits sales <b>70% to you / 30% platform</b>.
+          </p>
+          <div class="vatar-sheet-actions">
+            <button id="btn-sheet-pay" class="vatar-pay-btn">✅ Pay (test) · <span id="sheet-btn-amount">₦100</span></button>
+            <div class="vatar-sub-actions">
+              <button id="btn-sheet-fail" class="vatar-fail-btn">❌ Fail (test)</button>
+              <button id="btn-sheet-cancel" class="vatar-cancel-btn">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="toast-container" class="toast-container"></div>
+    </div>
+
+    <!-- ==============================================================
+         RIGHT PANEL: VATAR DEVELOPER SANDBOX & SUBMISSION CHECKLIST
+         (Visible on Desktop or when toggled via 🛠️ button; hidden inside lagoslife.app frame)
+         ============================================================== -->
+    <aside id="dev-inspector" class="dev-inspector">
+      <div class="inspector-header">
+        <div>
+          <span class="ins-badge">VATAR GAMES SDK v1</span>
+          <h2>Lagos Life Creator Console</h2>
+        </div>
+        <button id="btn-close-inspector" class="icon-btn mobile-only">✕</button>
+      </div>
+
+      <p class="inspector-intro">
+        Live integration status for <b>lagoslife.app/developers/dashboard</b>. Test every checklist requirement below!
+      </p>
+
+      <!-- 6-Point Integration Checklist -->
+      <div class="checklist-card">
+        <h3>✅ Vatar Integration Checklist</h3>
+        <ul class="checklist-items" id="checklist-items">
+          <li id="chk-init"><span class="chk-box">⬜</span> <div><b>1. SDK <code>Vatar.init()</code> seen</b><small>Player pseudonym &amp; session token loaded</small></div></li>
+          <li id="chk-buy"><span class="chk-box">⬜</span> <div><b>2. Test purchase made</b><small><code>Vatar.purchase(productId)</code> resolved</small></div></li>
+          <li id="chk-verify"><span class="chk-box">⬜</span> <div><b>3. Verified by server</b><small><code>POST /session/verify</code> + <code>GET /purchases/{id}</code></small></div></li>
+          <li id="chk-deliver"><span class="chk-box">⬜</span> <div><b>4. Marked delivered</b><small><code>POST /purchases/{id}/deliver</code> called</small></div></li>
+          <li id="chk-webhook"><span class="chk-box">⬜</span> <div><b>5. Webhook answered 2xx</b><small><code>POST /vatar-webhook</code> HMAC verified</small></div></li>
+          <li id="chk-match"><span class="chk-box">⬜</span> <div><b>6. 1v1 Match settled</b><small><code>POST /matches/{id}/result</code> signed w/ Results Secret</small></div></li>
+        </ul>
+      </div>
+
+      <!-- One-Click Sandbox Test Triggers -->
+      <div class="sandbox-controls-card">
+        <h3>🧪 One-Click Sandbox Tests</h3>
+        <div class="sandbox-btn-grid">
+          <button id="btn-test-buy-100" class="sb-btn">💳 Test Buy ₦100 Pack</button>
+          <button id="btn-test-webhook" class="sb-btn">🔔 Send Signed Webhook</button>
+          <button id="btn-test-pause" class="sb-btn">⏸️ Test onPause / Resume</button>
+          <button id="btn-test-match" class="sb-btn">⚔️ Test 1v1 Match Sign</button>
+        </div>
+        <div id="inspector-log" class="inspector-log">Ready. Click any test button or play a shift!</div>
+      </div>
+
+      <!-- Revenue Calculator & Model Summary -->
+      <div class="revenue-card">
+        <h3>💰 Lagos Life Revenue Model</h3>
+        <div class="rev-split-row">
+          <div class="rev-box">
+            <span class="rev-pct">70%</span>
+            <span class="rev-lbl">Your Cut on IAP Sales (₦100–₦1,500)</span>
+          </div>
+          <div class="rev-box">
+            <span class="rev-pct">40%</span>
+            <span class="rev-lbl">Of 5% House Cut on 1v1 Stakes</span>
+          </div>
+        </div>
+        <p class="rev-note">
+          At 15,000+ concurrent Lagos Life players: just 250 daily buyers of the ₦300–₦500 packs = <b>~₦2.1M+/month</b> (70% creator share paid monthly by bank transfer).
+        </p>
+      </div>
+    </aside>
+  </div>
+
+  <script type="module" src="/game.js"></script>
+</body>
+</html>
