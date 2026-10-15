@@ -425,6 +425,7 @@ const server = http.createServer(async (req, res) => {
       store.checklist.purchaseVerifiedByServer = true
       store.checklist.purchaseMarkedDelivered = true
       saveStore()
+      console.log(`💳 [VATAR PURCHASE DELIVERED] player=${p.playerId} product=${p.productId} purchaseId=${p.id} mode=${p.mode || "live"}`)
 
       return sendJson(res, 200, {
         ok: true,
@@ -456,6 +457,7 @@ const server = http.createServer(async (req, res) => {
 
       const deliveryId = req.headers["x-vatar-delivery"] || evt.id
       store.checklist.webhookAnswered2xx = true
+      console.log(`🔔 [VATAR WEBHOOK] event=${evt.type} deliveryId=${deliveryId} mode=${evt.mode}`)
 
       // Deduplicate webhook deliveries by id
       if (deliveryId && store.handledWebhooks[deliveryId]) {
@@ -563,6 +565,11 @@ const server = http.createServer(async (req, res) => {
 
       store.checklist.sdkInitSeen = true
       const player = getOrCreatePlayer(playerId, playerName)
+      if (action === "load") {
+        console.log(`👀 [PLAYER OPENED GAME] name="${player.name}" id=${playerId} referer=${req.headers.referer || "direct"}`)
+      } else if (action === "record_shift") {
+        console.log(`🔥 [SHIFT COMPLETED] name="${player.name}" id=${playerId} naira=${payload?.nairaEarned} score=${payload?.score}`)
+      }
 
       if (action === "record_shift" && payload) {
         const earned = Math.max(0, Math.min(500000, Math.floor(Number(payload.nairaEarned) || 0)))
