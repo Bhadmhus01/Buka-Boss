@@ -98,6 +98,75 @@ const CUSTOMER_ARCHETYPES = [
   { name: "Afrobeats DJ", avatar: "🎧", line: "Quick bite before Quilox set starts!" },
 ]
 
+const LAGOS_CITY_EVENTS = [
+  {
+    id: "felabration",
+    icon: "🎷",
+    title: "Felabration Week",
+    timer: "Ends in 3d 14h",
+    desc: "Lagos celebrates Fela all week! Crowds heading to Afrika Shrine pay +20% Naira fares.",
+    pill: "1.2× FARES",
+    nairaMult: 1.2,
+    extraPeppers: 0,
+  },
+  {
+    id: "super_eagles",
+    icon: "⚽",
+    title: "Viewing Centre Match Night",
+    timer: "Live Tonight",
+    desc: "Viewing Centres are packed across Lagos! All Suya, Shawarma & drinks earn +25% tips.",
+    pill: "1.25× TIPS",
+    nairaMult: 1.25,
+    extraPeppers: 0,
+  },
+  {
+    id: "gov_food_policy",
+    icon: "🏛️",
+    title: "Gov. Food Policy Subsidy",
+    timer: "Active Term",
+    desc: "Lagos State 'Food First' policy is live! +15% Naira fares & +2🌶️ Peppers on fast serves.",
+    pill: "+15% & +2🌶️",
+    nairaMult: 1.15,
+    extraPeppers: 2,
+  },
+]
+
+const WAHALA_ENCOUNTERS = [
+  {
+    id: "area_boys",
+    avatar: "🕶️",
+    title: "Area Boys at Your Stall!",
+    line: '"Chairman! Your Suya aroma reach bus stop o. Drop small pure water money make we hype your spot!"',
+    choices: [
+      { label: "💸 Settle ₦150", kind: "settle_150", primary: true },
+      { label: "🥩 Dash Suya", kind: "dash_food" },
+      { label: "🗣️ No Shishi!", kind: "plead_or_odogwu" },
+    ],
+  },
+  {
+    id: "inspector",
+    avatar: "📋",
+    title: "Lagos Health Inspector!",
+    line: '"Good evening Chef! Show your clean kitchen permit or package one hot Jollof inspection pack!"',
+    choices: [
+      { label: "📄 Show Papers", kind: "show_papers", primary: true },
+      { label: "🍛 Jara Pack (₦100)", kind: "jara_100" },
+      { label: "🙏🏾 Plead Well", kind: "plead_or_odogwu" },
+    ],
+  },
+  {
+    id: "tiktok_foodie",
+    avatar: "🤳🏾",
+    title: "Viral TikTok Food Blogger!",
+    line: '"Wait o! Is this the famous Buka Boss spot?! Let me film a VIP tasting tray for 100k Lagosians!"',
+    choices: [
+      { label: "✨ VIP Tray (₦120)", kind: "viral_fever", primary: true },
+      { label: "🌶️ Spicy Sample", kind: "spicy_sample" },
+      { label: "👋🏾 Too Busy", kind: "quick_tip" },
+    ],
+  },
+]
+
 // ============================================================================
 // 2. WEB AUDIO SYNTHESIZER (Review Checklist #4: Starts ONLY after first tap,
 //    pauses immediately on Vatar.onPause, resumes on Vatar.onResume)
@@ -398,6 +467,7 @@ const state = {
   selectedKitchenId: "yaba_suya",
   selectedStake: 0,
   pendingRoomMatch: null,
+  activeEventIdx: 0,
 
   // Active Shift State
   shift: {
@@ -414,6 +484,8 @@ const state = {
     nepaBlackout: false,
     genCranks: 0,
     nextNepaIn: 20,
+    wahalaTriggered: false,
+    activeWahala: null,
     grills: [],
     tray: [],
     customers: [null, null, null],
@@ -518,9 +590,16 @@ function hasPerk(productId) {
 function renderAllUI() {
   const p = state.playerProfile
   $("player-name").textContent = p.name || "Lagosian"
+  const isDevUrl = new URLSearchParams(location.search).get("dev") === "1"
   $("sdk-mode-badge").textContent = VatarBridge.isRealFrame
-    ? `VATAR ${VatarBridge.mode.toUpperCase()}`
-    : "VATAR SANDBOX"
+    ? "LAGOS CHEF"
+    : isDevUrl
+    ? "VATAR SANDBOX"
+    : "LAGOS CHEF"
+  const devBtn = $("btn-sandbox-drawer")
+  const devPanel = $("dev-inspector")
+  if (devBtn) devBtn.classList.toggle("hidden", !isDevUrl)
+  if (devPanel && !isDevUrl) devPanel.classList.add("hidden")
   if (VatarBridge.player.avatar) {
     $("player-avatar").innerHTML = `<img src="${VatarBridge.player.avatar}" alt="Avatar" />`
   }
@@ -530,8 +609,16 @@ function renderAllUI() {
   $("home-best-score").textContent = Math.floor(p.bestScore || 0).toLocaleString("en-NG")
 
   const k = KITCHENS[state.selectedKitchenId] || KITCHENS.yaba_suya
+  const ev = LAGOS_CITY_EVENTS[state.activeEventIdx % LAGOS_CITY_EVENTS.length]
+  if ($("ev-icon")) {
+    $("ev-icon").textContent = ev.icon
+    $("ev-title").textContent = ev.title
+    $("ev-timer").textContent = ev.timer
+    $("ev-desc").textContent = ev.desc
+    $("ev-mult-pill").textContent = ev.pill
+  }
   $("active-kitchen-badge").textContent = k.badge
-  $("start-shift-sub").textContent = `${k.name} · ${k.priceMult}× Tips`
+  $("start-shift-sub").textContent = `${k.name} · ${k.priceMult}× + ${ev.pill}`
   $("upgrade-kitchen-name").textContent = k.name
 
   // Perks strip
@@ -785,6 +872,8 @@ function startShift(matchObj = null) {
     nepaBlackout: false,
     genCranks: 0,
     nextNepaIn: hasPerk("solar_inverter_500") ? 999 : 18,
+    wahalaTriggered: false,
+    activeWahala: null,
     grills: Array.from({ length: slotCount }, () => ({
       state: "empty", // empty | cooking | cooked | burnt
       item: null,
@@ -995,8 +1084,10 @@ function serveCustomer(slotIdx) {
   const vipTipMult = hasPerk("double_tips_300") ? 2 : 1
   const feverMult = state.shift.feverTimeLeft > 0 ? 2 : 1
   const odogwuScoreMult = hasPerk("golden_suya_pass_1500") ? 2 : 1
+  const activeEv = LAGOS_CITY_EVENTS[state.activeEventIdx % LAGOS_CITY_EVENTS.length]
+  const eventMult = activeEv?.nairaMult || 1.0
 
-  const totalNaira = Math.round((cust.baseValue + speedTip) * upgradeMult * vipTipMult * feverMult)
+  const totalNaira = Math.round((cust.baseValue + speedTip) * upgradeMult * vipTipMult * feverMult * eventMult)
   state.shift.naira += totalNaira
   state.shift.ordersServed += 1
   state.shift.combo += 1
@@ -1006,7 +1097,7 @@ function serveCustomer(slotIdx) {
 
   // Chance to find bonus Gold Peppers on fast serves!
   if (patienceRatio > 0.55) {
-    state.shift.peppersFound += 3
+    state.shift.peppersFound += 3 + (activeEv?.extraPeppers || 0)
   }
 
   // Trigger Owambe Fever at 5x combo!
@@ -1018,6 +1109,78 @@ function serveCustomer(slotIdx) {
   sfx.cashServe()
   state.shift.customers[slotIdx] = null
   state.shift.nextCustomerSpawnIn = Math.min(state.shift.nextCustomerSpawnIn, 0.8)
+  renderShiftFrame()
+}
+
+function handleWahalaChoice(kind) {
+  const s = state.shift
+  if (!s.activeWahala) return
+  s.activeWahala = null
+
+  if (hasPerk("golden_suya_pass_1500") && kind === "plead_or_odogwu") {
+    s.naira += 450
+    s.combo += 2
+    sfx.upNepa()
+    showToast("👑 Odogwu Pass! They salute your VIP kitchen: +₦450 & +2× Combo!")
+    renderShiftFrame()
+    return
+  }
+
+  if (kind === "settle_150") {
+    s.naira = Math.max(0, s.naira - 150) + 380
+    s.combo += 2
+    sfx.cashServe()
+    showToast("🕶️ Area Boys hyped your stall! Net +₦230 VIP Hype & +2× Combo!")
+  } else if (kind === "dash_food") {
+    if (s.tray.length > 0) s.tray.pop()
+    s.customers.forEach((c) => {
+      if (c) c.patience = c.maxPatience
+    })
+    sfx.upNepa()
+    showToast("🥩 Dashed Suya! All waiting customers' patience restored to 100%!")
+  } else if (kind === "show_papers") {
+    const anyBurnt = s.grills.some((g) => g.state === "burnt")
+    if (!anyBurnt) {
+      s.naira += 350
+      s.peppersFound += 2
+      sfx.upNepa()
+      showToast("📄 Clean Kitchen Award! +₦350 & +2🌶️ Gold Peppers!")
+    } else {
+      s.naira = Math.max(0, s.naira - 100)
+      sfx.error()
+      showToast("⚠️ Inspector saw burnt food on grill! Paid ₦100 fine.")
+    }
+  } else if (kind === "jara_100") {
+    s.naira = Math.max(0, s.naira - 100)
+    s.combo += 2
+    s.timeLeft += 4
+    sfx.cashServe()
+    showToast("🍛 Inspector loved the Jara pack! +4s Shift Time & +2× Combo!")
+  } else if (kind === "viral_fever") {
+    s.naira = Math.max(0, s.naira - 120)
+    s.feverTimeLeft = 8
+    sfx.upNepa()
+    showToast("🤳🏾 Viral on Lagos TikTok! 8s OWAMBE FEVER (2× Naira & Score)!")
+  } else if (kind === "spicy_sample") {
+    s.naira += 260
+    s.peppersFound += 3
+    sfx.cashServe()
+    showToast("🌶️ Blogger loved the spicy Yaji! +₦260 & +3🌶️ Gold Peppers!")
+  } else if (kind === "quick_tip") {
+    s.naira += 140
+    sfx.tap()
+    showToast("👋🏾 Collected +₦140 quick tip and kept cooking!")
+  } else {
+    // plead_or_odogwu without Odogwu Pass
+    if (Math.random() < 0.65) {
+      s.naira += 180
+      sfx.tap()
+      showToast("🗣️ Smooth Lagos street talk worked! +₦180 bonus!")
+    } else {
+      sfx.error()
+      showToast("😤 They grumbled and left — get Odogwu Pass for automatic VIP respect!")
+    }
+  }
   renderShiftFrame()
 }
 
@@ -1038,6 +1201,29 @@ function renderShiftFrame() {
   $("nepa-alert").classList.toggle("hidden", !s.nepaBlackout)
   if (s.nepaBlackout) {
     $("gen-cranks").textContent = `${s.genCranks}/3`
+  }
+
+  // Render Street Wahala Encounter Banner if active
+  const wahalaBox = $("wahala-encounter")
+  if (wahalaBox) {
+    if (s.activeWahala) {
+      wahalaBox.classList.remove("hidden")
+      $("wahala-avatar").textContent = s.activeWahala.avatar
+      $("wahala-title").textContent = s.activeWahala.title
+      $("wahala-line").textContent = s.activeWahala.line
+      const choicesEl = $("wahala-choices")
+      choicesEl.innerHTML = ""
+      s.activeWahala.choices.forEach((ch) => {
+        const btn = document.createElement("button")
+        btn.className = `wahala-btn ${ch.primary ? "primary" : ""}`
+        btn.textContent =
+          ch.kind === "plead_or_odogwu" && hasPerk("golden_suya_pass_1500") ? "👑 Odogwu VIP" : ch.label
+        btn.onclick = () => handleWahalaChoice(ch.kind)
+        choicesEl.appendChild(btn)
+      })
+    } else {
+      wahalaBox.classList.add("hidden")
+    }
   }
 
   // Render 3 customer counter slots
@@ -1181,6 +1367,13 @@ setInterval(() => {
       sfx.nepaDown()
       showToast("⚡ NEPA TOOK LIGHT! Crank the Generator 3 times!")
     }
+  }
+
+  // Mid-Shift Street Wahala Encounter (Area Boys / Inspector / TikTok Blogger)
+  if (!s.wahalaTriggered && s.timeLeft <= 45 && s.timeLeft > 18 && !s.nepaBlackout) {
+    s.wahalaTriggered = true
+    s.activeWahala = WAHALA_ENCOUNTERS[Math.floor(Math.random() * WAHALA_ENCOUNTERS.length)]
+    sfx.readyDing()
   }
 
   // Grill progress
@@ -1385,6 +1578,13 @@ function wireEvents() {
   // Start Shift & 1v1 Quick buttons
   $("btn-start-shift").onclick = () => startShift(null)
   $("btn-quick-1v1").onclick = () => switchScreen("screen-versus")
+  if ($("live-event-banner")) {
+    $("live-event-banner").onclick = () => {
+      sfx.tap()
+      state.activeEventIdx = (state.activeEventIdx + 1) % LAGOS_CITY_EVENTS.length
+      renderAllUI()
+    }
+  }
   $("btn-end-shift").onclick = () => finishShift()
   $("btn-clear-tray").onclick = () => {
     sfx.tap()

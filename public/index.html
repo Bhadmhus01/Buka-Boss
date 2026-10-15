@@ -40,7 +40,7 @@
 
         <div class="hud-actions">
           <button id="btn-sound" class="icon-btn" aria-label="Toggle Sound" title="Toggle Sound">🔊</button>
-          <button id="btn-sandbox-drawer" class="icon-btn dev-btn" aria-label="Vatar Sandbox Tools" title="Vatar Sandbox & Checklist">🛠️</button>
+          <button id="btn-sandbox-drawer" class="icon-btn dev-btn hidden" aria-label="Vatar Sandbox Tools" title="Vatar Sandbox & Checklist">🛠️</button>
         </div>
       </header>
 
@@ -69,6 +69,21 @@
             <h1 class="game-title">BUKA BOSS</h1>
             <p class="game-subtitle">Lagos Street Kitchen &amp; 1v1 Cook-Off</p>
 
+            <!-- Live Lagos Cultural Event Banner -->
+            <div class="live-event-banner" id="live-event-banner" title="Tap to preview Lagos City Events">
+              <div class="ev-left">
+                <span class="ev-icon" id="ev-icon">🎷</span>
+                <div class="ev-info">
+                  <div class="ev-title-row">
+                    <strong id="ev-title">Felabration Week</strong>
+                    <span class="ev-timer" id="ev-timer">Ends in 3d 14h</span>
+                  </div>
+                  <span class="ev-desc" id="ev-desc">Crowds heading to Afrika Shrine! All kitchens get +20% Naira fares.</span>
+                </div>
+              </div>
+              <span class="ev-mult-pill" id="ev-mult-pill">1.2× FARES</span>
+            </div>
+
             <!-- Active Perks Strip -->
             <div class="perks-strip" id="active-perks-strip">
               <span class="perk-tag locked" id="perk-tag-tips">💰 2× Tips: Off</span>
@@ -83,7 +98,7 @@
               </button>
               <button id="btn-quick-1v1" class="cta-versus-btn">
                 <span class="cta-main">⚔️ 1v1 COOK-OFF</span>
-                <span class="cta-sub">Stake Lagos Life ₦</span>
+                <span class="cta-sub">60s Kitchen Showdown</span>
               </button>
             </div>
           </div>
@@ -153,6 +168,18 @@
             <button id="btn-crank-gen" class="crank-gen-btn">
               🔌 CRANK GEN (<span id="gen-cranks">0/3</span>)
             </button>
+          </div>
+
+          <!-- Street Wahala Encounter Banner (Agbero / Inspector / TikTok Blogger) -->
+          <div id="wahala-encounter" class="wahala-encounter hidden">
+            <div class="wahala-top">
+              <span class="wahala-avatar" id="wahala-avatar">🕶️</span>
+              <div class="wahala-copy">
+                <strong id="wahala-title">Area Boys at Your Stall!</strong>
+                <span id="wahala-line">"Chairman, drop small pure water money make we hype your spot!"</span>
+              </div>
+            </div>
+            <div class="wahala-choices" id="wahala-choices"></div>
           </div>
 
           <!-- Customer Counter Area (3 Slots) -->
@@ -332,7 +359,7 @@
         </button>
         <button class="nav-tab" data-screen="screen-versus">
           <span class="nav-icon">⚔️</span>
-          <span class="nav-label">1v1 Stake</span>
+          <span class="nav-label">Cook-Off</span>
         </button>
         <button class="nav-tab" data-screen="screen-shop">
           <span class="nav-icon">🛒</span>
@@ -415,7 +442,7 @@
          RIGHT PANEL: VATAR DEVELOPER SANDBOX & SUBMISSION CHECKLIST
          (Visible on Desktop or when toggled via 🛠️ button; hidden inside lagoslife.app frame)
          ============================================================== -->
-    <aside id="dev-inspector" class="dev-inspector">
+    <aside id="dev-inspector" class="dev-inspector hidden">
       <div class="inspector-header">
         <div>
           <span class="ins-badge">VATAR GAMES SDK v1</span>
@@ -474,5 +501,5 @@
   </div>
 
   <script type="module" src="/game.js"></script>
-</body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a4ad0f445a00fe9a',t:'MTc5MjA0ODgwOQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>

@@ -274,6 +274,128 @@ button, input {
   color: var(--text-muted);
 }
 
+/* Live Lagos Cultural Event Banner */
+.live-event-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: linear-gradient(135deg, rgba(255, 184, 48, 0.16), rgba(23, 201, 100, 0.14));
+  border: 1px solid rgba(255, 184, 48, 0.45);
+  border-radius: 11px;
+  padding: 7px 9px;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+
+.ev-left {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.ev-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.ev-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ev-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ev-title-row strong {
+  font-size: 11px;
+  color: var(--gold-bright);
+}
+
+.ev-timer {
+  font-size: 9px;
+  color: #8df7b8;
+  font-weight: 700;
+}
+
+.ev-desc {
+  font-size: 10px;
+  color: var(--text-muted);
+  line-height: 1.2;
+}
+
+.ev-mult-pill {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 900;
+  padding: 3px 7px;
+  border-radius: 99px;
+  background: var(--gold);
+  color: #1a0f08;
+}
+
+/* Street Wahala Encounter Card (Mid-Shift) */
+.wahala-encounter {
+  background: linear-gradient(135deg, #3b2210, #1f120b);
+  border: 1.5px solid var(--gold);
+  border-radius: 10px;
+  padding: 7px 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
+  animation: fadeUp 0.2s ease-out;
+}
+
+.wahala-top {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.wahala-avatar {
+  font-size: 22px;
+}
+
+.wahala-copy {
+  display: flex;
+  flex-direction: column;
+  font-size: 10px;
+}
+
+.wahala-copy strong {
+  color: var(--gold-bright);
+  font-size: 11px;
+}
+
+.wahala-choices {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+}
+
+.wahala-btn {
+  padding: 5px 6px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 184, 48, 0.4);
+  background: #2b1a11;
+  color: var(--text-main);
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.wahala-btn.primary {
+  background: var(--gold);
+  color: #1a0f08;
+  border-color: var(--gold);
+}
+
 .perks-strip {
   display: flex;
   flex-wrap: wrap;
