@@ -546,11 +546,13 @@ const server = http.createServer(async (req, res) => {
     // ------------------------------------------------------------------------
     // 4. PLAYER PROFILE & STATE SYNC (POST /api/player/sync)
     // Identifies player by Vatar session token + player.id (never cookies!)
+    // Includes clientBackup high-water-mark merge so Render free-tier restarts
+    // never wipe a player's earned Naira, unlocked kitchens, or upgrades.
     // ------------------------------------------------------------------------
     if (req.method === "POST" && pathname === "/api/player/sync") {
       const raw = await readRawBody(req)
       const body = JSON.parse(raw.toString("utf8") || "{}")
-      const { session, action, payload } = body
+      const { session, action, payload, clientBackup } = body
 
       let playerId = body.playerId || "t_guest_lagos"
       let playerName = body.playerName || "Lagosian"
@@ -565,6 +567,63 @@ const server = http.createServer(async (req, res) => {
 
       store.checklist.sdkInitSeen = true
       const player = getOrCreatePlayer(playerId, playerName)
+
+      // High-water-mark recovery from browser localStorage backup if Render container restarted
+      if (clientBackup && typeof clientBackup === "object") {
+        const cbShifts = Math.max(0, Math.min(100000, Math.floor(Number(clientBackup.shiftsPlayed) || 0)))
+        const serverWasReset = cbShifts > (player.shiftsPlayed || 0) || ((player.shiftsPlayed || 0) === 0 && Number(clientBackup.nairaEarned) > player.nairaEarned)
+
+        if (cbShifts > (player.shiftsPlayed || 0)) player.shiftsPlayed = cbShifts
+        if (Number(clientBackup.ordersServed) > (player.ordersServed || 0)) {
+          player.ordersServed = Math.min(1000000, Math.floor(Number(clientBackup.ordersServed) || 0))
+        }
+        if (Number(clientBackup.bestScore) > (player.bestScore || 0)) {
+          player.bestScore = Math.min(10000000, Math.floor(Number(clientBackup.bestScore) || 0))
+        }
+        if (serverWasReset) {
+          if (Number(clientBackup.nairaEarned) > player.nairaEarned) {
+            player.nairaEarned = Math.min(50000000, Math.floor(Number(clientBackup.nairaEarned) || 0))
+          }
+          if (Number(clientBackup.peppers) > player.peppers) {
+            player.peppers = Math.min(500000, Math.floor(Number(clientBackup.peppers) || 0))
+          }
+          if (clientBackup.boosters && typeof clientBackup.boosters === "object") {
+            for (const bKey of ["rushBoosts", "autoChefs", "jaraRefills"]) {
+              const bVal = Math.max(0, Math.min(999, Math.floor(Number(clientBackup.boosters[bKey]) || 0)))
+              if (bVal > (player.boosters[bKey] || 0)) player.boosters[bKey] = bVal
+            }
+          }
+        }
+        const validKitchens = ["yaba_suya", "shitta_amala", "ikeja_shawarma", "vi_quilox"]
+        if (Array.isArray(clientBackup.unlockedKitchens)) {
+          for (const kId of clientBackup.unlockedKitchens) {
+            if (validKitchens.includes(kId) && !player.unlockedKitchens.includes(kId)) {
+              player.unlockedKitchens.push(kId)
+            }
+          }
+        }
+        if (Array.isArray(clientBackup.ownedOneOffs)) {
+          for (const prodId of clientBackup.ownedOneOffs) {
+            if (PRODUCT_CATALOG[prodId] && !player.ownedOneOffs.includes(prodId)) {
+              player.ownedOneOffs.push(prodId)
+            }
+          }
+        }
+        if (clientBackup.kitchenLevels && typeof clientBackup.kitchenLevels === "object") {
+          for (const kId of validKitchens) {
+            const srcK = clientBackup.kitchenLevels[kId]
+            const dstK = player.kitchenLevels[kId]
+            if (srcK && dstK) {
+              for (const stat of ["grillSpeed", "grillSlots", "tipBonus", "patienceBoost"]) {
+                const maxCap = stat === "grillSlots" ? 4 : 5
+                const sVal = Math.max(1, Math.min(maxCap, Math.floor(Number(srcK[stat]) || 1)))
+                if (sVal > (dstK[stat] || 1)) dstK[stat] = sVal
+              }
+            }
+          }
+        }
+      }
+
       if (action === "load") {
         console.log(`👀 [PLAYER OPENED GAME] name="${player.name}" id=${playerId} referer=${req.headers.referer || "direct"}`)
       } else if (action === "record_shift") {
