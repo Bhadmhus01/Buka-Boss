@@ -514,6 +514,36 @@ function logInspector(msg) {
   box.textContent = `[${time}] ${msg}`
 }
 
+function saveLocalProgress(profile) {
+  try {
+    if (!profile || !profile.playerId) return
+    const snapshot = {
+      playerId: profile.playerId,
+      nairaEarned: profile.nairaEarned,
+      peppers: profile.peppers,
+      bestScore: profile.bestScore,
+      shiftsPlayed: profile.shiftsPlayed,
+      ordersServed: profile.ordersServed,
+      unlockedKitchens: profile.unlockedKitchens,
+      kitchenLevels: profile.kitchenLevels,
+      boosters: profile.boosters,
+      ownedOneOffs: profile.ownedOneOffs,
+      savedAt: Date.now(),
+    }
+    localStorage.setItem(`buka_boss_save_v1_${profile.playerId}`, JSON.stringify(snapshot))
+  } catch {}
+}
+
+function loadLocalProgress(playerId) {
+  try {
+    if (!playerId) return null
+    const raw = localStorage.getItem(`buka_boss_save_v1_${playerId}`)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
 // Claim a Vatar purchase with our backend server (Spec §3 & §8: POST /claim)
 async function claimPurchase(p) {
   try {
@@ -526,23 +556,56 @@ async function claimPurchase(p) {
     })
     const data = await r.json()
     if (r.ok && data.ok) {
-      if (data.player) state.playerProfile = data.player
+      if (data.player) {
+        state.playerProfile = data.player
+        saveLocalProgress(state.playerProfile)
+      }
       sfx.upNepa()
       showToast(`🎉 Delivered: ${state.catalog[p.productId]?.name || p.productId}!`)
       logInspector(`✅ Purchase ${p.purchaseId} verified & marked delivered!`)
       await refreshChecklist()
       renderAllUI()
+      return true
     } else {
       showToast(`⚠️ Could not verify purchase: ${data.message || data.error}`)
+      return false
     }
   } catch (err) {
     console.error("Claim error:", err)
+    return false
+  }
+}
+
+async function triggerQuickPurchase(productId, onDelivered = null) {
+  const prod = state.catalog[productId]
+  if (prod?.kind === "one_off" && hasPerk(productId)) {
+    showToast("You already own this permanent VIP upgrade!")
+    return false
+  }
+  sfx.tap()
+  try {
+    const res = await VatarBridge.purchase(productId, prod)
+    const ok = await claimPurchase(res)
+    if (ok && typeof onDelivered === "function") {
+      await onDelivered()
+    }
+    return ok
+  } catch (err) {
+    if (err.code === "cancelled") {
+      showToast("Purchase cancelled.")
+    } else if (err.code === "owned") {
+      showToast("You already own this permanent upgrade!")
+    } else {
+      showToast(`Payment did not complete (${err.code || "error"}).`)
+    }
+    return false
   }
 }
 
 async function syncWithServer(action = "load", payload = {}) {
   try {
     const { session } = await VatarBridge.session()
+    const clientBackup = loadLocalProgress(VatarBridge.player.id)
     const r = await fetch("/api/player/sync", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -552,11 +615,13 @@ async function syncWithServer(action = "load", payload = {}) {
         playerName: VatarBridge.player.name,
         action,
         payload,
+        clientBackup,
       }),
     })
     const data = await r.json()
     if (data.ok) {
       state.playerProfile = data.player
+      saveLocalProgress(state.playerProfile)
       state.catalog = data.catalog || state.catalog
       state.checklist = data.checklist || state.checklist
       renderAllUI()
@@ -653,6 +718,20 @@ function renderKitchenCards() {
   Object.values(KITCHENS).forEach((k) => {
     const isUnlocked = unlocked.includes(k.id) || hasPerk("golden_suya_pass_1500")
     const isSelected = state.selectedKitchenId === k.id
+    const canAffordInGame =
+      state.playerProfile.nairaEarned >= k.unlockNaira || state.playerProfile.peppers >= k.unlockPeppers
+
+    let fastTrackHtml = ""
+    if (!isUnlocked && !canAffordInGame) {
+      if (k.id === "shitta_amala") {
+        fastTrackHtml = `<button class="k-vip-unlock-btn" data-vip-prod="spices_pack_100">🌶️ Instant Unlock (+500🌶️ Pack) · ₦100</button>`
+      } else if (k.id === "ikeja_shawarma") {
+        fastTrackHtml = `<button class="k-vip-unlock-btn" data-vip-prod="gen_fuel_200">⛽ Instant Unlock (+1,200🌶️ Pack) · ₦200</button>`
+      } else if (k.id === "vi_quilox") {
+        fastTrackHtml = `<button class="k-vip-unlock-btn" data-vip-prod="golden_suya_pass_1500">👑 Odogwu Pass (All 4 Kitchens) · ₦1,500</button>`
+      }
+    }
+
     const card = document.createElement("div")
     card.className = `kitchen-card ${isSelected ? "selected" : ""} ${!isUnlocked ? "locked" : ""}`
     card.innerHTML = `
@@ -665,9 +744,26 @@ function renderKitchenCards() {
       ${
         isUnlocked
           ? `<button class="k-action-btn select">${isSelected ? "✓ Active Spot" : "Select Kitchen"}</button>`
-          : `<button class="k-action-btn unlock">Unlock ₦${k.unlockNaira.toLocaleString()} or 🌶️${k.unlockPeppers}</button>`
+          : `<button class="k-action-btn unlock">Unlock ₦${k.unlockNaira.toLocaleString()} or 🌶️${k.unlockPeppers}</button>${fastTrackHtml}`
       }
     `
+
+    const vipBtn = card.querySelector(".k-vip-unlock-btn")
+    if (vipBtn) {
+      vipBtn.onclick = async (e) => {
+        e.stopPropagation()
+        const prodId = vipBtn.dataset.vipProd
+        await triggerQuickPurchase(prodId, async () => {
+          if (prodId !== "golden_suya_pass_1500" && state.playerProfile.peppers >= k.unlockPeppers) {
+            await syncWithServer("unlock_kitchen", { kitchenId: k.id, costPeppers: k.unlockPeppers })
+          }
+          state.selectedKitchenId = k.id
+          showToast(`🔓 Unlocked & selected ${k.name}!`)
+          renderAllUI()
+        })
+      }
+    }
+
     card.onclick = async () => {
       sfx.tap()
       if (isUnlocked) {
@@ -687,7 +783,20 @@ function renderKitchenCards() {
           showToast(`🔓 Unlocked ${k.name} with Gold Peppers!`)
           renderAllUI()
         } else {
-          showToast(`Need ₦${k.unlockNaira.toLocaleString()} or 🌶️${k.unlockPeppers} (or Odogwu Pass in VIP Store)!`)
+          const fallbackProd =
+            k.id === "shitta_amala"
+              ? "spices_pack_100"
+              : k.id === "ikeja_shawarma"
+              ? "gen_fuel_200"
+              : "golden_suya_pass_1500"
+          await triggerQuickPurchase(fallbackProd, async () => {
+            if (fallbackProd !== "golden_suya_pass_1500" && state.playerProfile.peppers >= k.unlockPeppers) {
+              await syncWithServer("unlock_kitchen", { kitchenId: k.id, costPeppers: k.unlockPeppers })
+            }
+            state.selectedKitchenId = k.id
+            showToast(`🔓 Unlocked & selected ${k.name}!`)
+            renderAllUI()
+          })
         }
       }
     }
@@ -1335,9 +1444,20 @@ function renderShiftFrame() {
 
 function renderBoostersBar() {
   const b = state.playerProfile.boosters || { rushBoosts: 0, autoChefs: 0, jaraRefills: 0 }
-  $("count-boost-rush").textContent = b.rushBoosts || 0
-  $("count-boost-auto").textContent = b.autoChefs || 0
-  $("count-boost-jara").textContent = b.jaraRefills || 0
+  const setBadge = (id, count, refillLabel) => {
+    const el = $(id)
+    if (!el) return
+    if (count > 0) {
+      el.textContent = count
+      el.classList.remove("refill-tag")
+    } else {
+      el.textContent = refillLabel
+      el.classList.add("refill-tag")
+    }
+  }
+  setBadge("count-boost-rush", b.rushBoosts || 0, "+₦100")
+  setBadge("count-boost-auto", b.autoChefs || 0, "+₦200")
+  setBadge("count-boost-jara", b.jaraRefills || 0, "+₦200")
 }
 
 // Main 10Hz Game Tick Loop
@@ -1436,6 +1556,35 @@ setInterval(() => {
   renderShiftFrame()
 }, 100)
 
+function renderSummaryUpsell(shiftNaira = 0) {
+  const pitchEl = $("upsell-pitch")
+  const mainBtn = $("btn-summary-upsell-main")
+  const subBtn = $("btn-summary-upsell-sub")
+  if (!pitchEl || !mainBtn || !subBtn) return
+
+  const bonusPreview = Math.max(800, shiftNaira)
+  if (!hasPerk("double_tips_300")) {
+    pitchEl.textContent = `With 2× VIP Tips, this shift would pay ₦${(bonusPreview * 2).toLocaleString("en-NG")}!`
+    mainBtn.textContent = "💰 Unlock Permanent 2× Tips · ₦300"
+    mainBtn.onclick = () => triggerQuickPurchase("double_tips_300", () => renderSummaryUpsell(shiftNaira))
+  } else if (!hasPerk("solar_inverter_500")) {
+    pitchEl.textContent = "Stop NEPA blackouts forever + cook 25% faster on every shift!"
+    mainBtn.textContent = "☀️ Get Eko Solar Inverter · ₦500"
+    mainBtn.onclick = () => triggerQuickPurchase("solar_inverter_500", () => renderSummaryUpsell(shiftNaira))
+  } else if (!hasPerk("golden_suya_pass_1500")) {
+    pitchEl.textContent = "Unlock Quilox VIP Rooftop (2.6× Pay) + 2× Leaderboard Score!"
+    mainBtn.textContent = "👑 Get Odogwu Kitchen Pass · ₦1,500"
+    mainBtn.onclick = () => triggerQuickPurchase("golden_suya_pass_1500", () => renderSummaryUpsell(shiftNaira))
+  } else {
+    pitchEl.textContent = "Load up +3,500🌶️ Gold Peppers & 15 VIP Boosters for #1 Rank!"
+    mainBtn.textContent = "🎉 Grab Owambe Party Crate · ₦500"
+    mainBtn.onclick = () => triggerQuickPurchase("owambe_crate_500", () => renderSummaryUpsell(shiftNaira))
+  }
+
+  subBtn.textContent = "🌶️ Or +500 Peppers & 3 Instant Grills · ₦100"
+  subBtn.onclick = () => triggerQuickPurchase("spices_pack_100")
+}
+
 async function finishShift() {
   state.shift.running = false
   const s = state.shift
@@ -1444,6 +1593,7 @@ async function finishShift() {
   $("sum-naira").textContent = `+₦${s.naira.toLocaleString("en-NG")}`
   $("sum-peppers").textContent = `+🌶️ ${s.peppersFound}`
   $("sum-score").textContent = s.score.toLocaleString("en-NG")
+  renderSummaryUpsell(s.naira)
   $("shift-summary-modal").classList.remove("hidden")
 
   // Sync shift earnings with backend
@@ -1606,11 +1756,21 @@ function wireEvents() {
     renderShiftFrame()
   }
 
+  if ($("btn-nepa-solar")) {
+    $("btn-nepa-solar").onclick = async () => {
+      await triggerQuickPurchase("solar_inverter_500", () => {
+        state.shift.nepaBlackout = false
+        showToast("☀️ Eko Solar Inverter Active! NEPA blackouts defeated forever!")
+        renderShiftFrame()
+      })
+    }
+  }
+
   // Active Boosters during Shift
   $("btn-boost-rush").onclick = async () => {
     if (!state.shift.running) return
     if ((state.playerProfile.boosters?.rushBoosts || 0) <= 0) {
-      showToast("No Instant Grill boosters left! Visit VIP Store.")
+      await triggerQuickPurchase("spices_pack_100", () => renderShiftFrame())
       return
     }
     sfx.upNepa()
@@ -1633,7 +1793,7 @@ function wireEvents() {
   $("btn-boost-auto").onclick = async () => {
     if (!state.shift.running) return
     if ((state.playerProfile.boosters?.autoChefs || 0) <= 0) {
-      showToast("No Mama Bisi Auto-Chefs left! Visit VIP Store.")
+      await triggerQuickPurchase("gen_fuel_200", () => renderShiftFrame())
       return
     }
     sfx.upNepa()
@@ -1646,7 +1806,7 @@ function wireEvents() {
   $("btn-boost-jara").onclick = async () => {
     if (!state.shift.running) return
     if ((state.playerProfile.boosters?.jaraRefills || 0) <= 0) {
-      showToast("No Sweet Jara boosters left! Visit VIP Store.")
+      await triggerQuickPurchase("gen_fuel_200", () => renderShiftFrame())
       return
     }
     sfx.upNepa()

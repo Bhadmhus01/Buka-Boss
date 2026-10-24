@@ -163,11 +163,16 @@
           <div id="nepa-alert" class="nepa-alert hidden">
             <div class="nepa-text">
               <strong>⚡ THEY HAVE TAKEN LIGHT! (NEPA)</strong>
-              <span>Grill speed -60%! Pull the generator cord!</span>
+              <span>Grill speed -60%! Crank gen or get Solar!</span>
             </div>
-            <button id="btn-crank-gen" class="crank-gen-btn">
-              🔌 CRANK GEN (<span id="gen-cranks">0/3</span>)
-            </button>
+            <div class="nepa-actions">
+              <button id="btn-crank-gen" class="crank-gen-btn">
+                🔌 CRANK (<span id="gen-cranks">0/3</span>)
+              </button>
+              <button id="btn-nepa-solar" class="nepa-solar-btn" title="Permanent NEPA Immunity + 25% Grill Speed">
+                ☀️ Solar ₦500
+              </button>
+            </div>
           </div>
 
           <!-- Street Wahala Encounter Banner (Agbero / Inspector / TikTok Blogger) -->
@@ -402,6 +407,20 @@
           <div id="summary-match-box" class="summary-match-box hidden"></div>
           <div id="summary-score-status" class="summary-score-status">Submitting score to Vatar leaderboard…</div>
 
+          <!-- Contextual High-Conversion Upgrade Prompt -->
+          <div id="summary-upsell-box" class="summary-upsell-box">
+            <div class="upsell-header">
+              <span class="upsell-tag">⚡ FAST-TRACK YOUR HUSTLE</span>
+              <span class="upsell-pitch" id="upsell-pitch">Double your Naira on every shift!</span>
+            </div>
+            <button id="btn-summary-upsell-main" class="upsell-main-btn">
+              💰 Get Permanent 2× Tips · ₦300
+            </button>
+            <button id="btn-summary-upsell-sub" class="upsell-sub-btn">
+              🌶️ Or grab +500 Peppers &amp; 3 Instant Grills · ₦100
+            </button>
+          </div>
+
           <div class="modal-actions">
             <button id="btn-summary-again" class="primary-btn">🔥 Another Shift</button>
             <button id="btn-summary-home" class="secondary-btn">🏠 Kitchen Hub</button>
@@ -501,5 +520,5 @@
   </div>
 
   <script type="module" src="/game.js"></script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a4ad0f445a00fe9a',t:'MTc5MjA0ODgwOQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a4f55dc63b4ae7b3',t:'MTc5MjgwNzAwMA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
