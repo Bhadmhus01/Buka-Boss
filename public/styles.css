@@ -187,7 +187,21 @@ button, input {
 
 .hud-actions {
   display: flex;
+  align-items: center;
   gap: 5px;
+}
+
+.radio-pill-btn {
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 184, 48, 0.45);
+  background: linear-gradient(135deg, #2d1e14, #1f140d);
+  color: var(--gold-bright);
+  font-size: 10px;
+  font-weight: 900;
+  cursor: pointer;
+  white-space: nowrap;
 }
 
 .icon-btn {

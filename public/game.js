@@ -168,26 +168,243 @@ const WAHALA_ENCOUNTERS = [
 ]
 
 // ============================================================================
-// 2. WEB AUDIO SYNTHESIZER (Review Checklist #4: Starts ONLY after first tap,
-//    pauses immediately on Vatar.onPause, resumes on Vatar.onResume)
+// 2. WEB AUDIO SYNTHESIZER & AFROBEATS RADIO ENGINE
+//    (Review Checklist #4: Starts ONLY after first tap, pauses immediately on
+//     Vatar.onPause, resumes on Vatar.onResume)
 // ============================================================================
+const AFROBEAT_TRACKS = [
+  {
+    id: "yaba_groove",
+    shortLabel: "📻 FM 1",
+    name: "Yaba Night Groove (Afrobeats 106 BPM)",
+    bpm: 106,
+    // 16-step syncopated Naija Afrobeats clave, kick, sub-bass, Rhodes & Highlife guitar
+    kick: [1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0],
+    rim: [0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0],
+    shaker: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    bass: [110, 0, 0, 110, 0, 0, 130.8, 0, 87.3, 0, 0, 87.3, 98, 0, 98, 0],
+    chords: [
+      [220, 261.6, 329.6],
+      [174.6, 220, 261.6],
+      [261.6, 329.6, 392],
+      [196, 246.9, 293.7],
+    ],
+    melody: [659.3, 0, 587.3, 523.3, 0, 440, 392, 440, 523.3, 0, 587.3, 659.3, 0, 523.3, 440, 0],
+    style: "afrobeats",
+  },
+  {
+    id: "quilox_amapiano",
+    shortLabel: "📻 FM 2",
+    name: "Quilox VIP Log Drum (Amapiano 112 BPM)",
+    bpm: 112,
+    kick: [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0],
+    rim: [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0],
+    shaker: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    // Signature Amapiano Log Drum pitch drops!
+    bass: [73.4, 0, 0, 73.4, 0, 0, 87.3, 0, 65.4, 0, 73.4, 82.4, 0, 0, 98.0, 73.4],
+    chords: [
+      [293.7, 349.2, 440],
+      [233.1, 293.7, 349.2],
+      [196, 233.1, 293.7],
+      [220, 277.2, 329.6],
+    ],
+    melody: [587.3, 0, 0, 698.5, 659.3, 0, 587.3, 0, 523.3, 0, 587.3, 0, 440, 0, 523.3, 0],
+    style: "amapiano",
+  },
+  {
+    id: "shitta_highlife",
+    shortLabel: "📻 FM 3",
+    name: "Shitta Shrine Horns (Fela Afrobeat 118 BPM)",
+    bpm: 118,
+    kick: [1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0],
+    rim: [0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0],
+    shaker: [1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1],
+    bass: [110, 110, 0, 130.8, 146.8, 0, 130.8, 110, 98, 98, 0, 110, 130.8, 0, 98, 82.4],
+    chords: [
+      [220, 261.6, 329.6],
+      [220, 261.6, 329.6],
+      [196, 246.9, 293.7],
+      [196, 246.9, 293.7],
+    ],
+    melody: [440, 523.3, 587.3, 659.3, 0, 587.3, 523.3, 440, 392, 440, 523.3, 0, 587.3, 523.3, 440, 0],
+    style: "highlife",
+  },
+]
+
 class SoundEngine {
   constructor() {
     this.ctx = null
     this.unlocked = false
     this.muted = false
     this.pausedByPlatform = false
+    this.trackIdx = 0
+    this.stepIdx = 0
+    this.barIdx = 0
+    this.musicTimer = null
+    this.noiseBuffer = null
   }
 
   unlock() {
-    if (this.unlocked) return
+    if (this.unlocked) {
+      if (this.ctx && this.ctx.state === "suspended" && !this.pausedByPlatform && !this.muted) {
+        this.ctx.resume().catch(() => {})
+      }
+      return
+    }
     const AudioCtx = window.AudioContext || window.webkitAudioContext
     if (!AudioCtx) return
     this.ctx = new AudioCtx()
     if (this.ctx.state === "suspended" && !this.pausedByPlatform) {
       this.ctx.resume().catch(() => {})
     }
+    // Create reusable white-noise buffer for authentic Nigerian Shekere shaker & snare
+    try {
+      const sr = this.ctx.sampleRate
+      const buf = this.ctx.createBuffer(1, Math.floor(sr * 0.08), sr)
+      const data = buf.getChannelData(0)
+      for (let i = 0; i < data.length; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (sr * 0.018))
+      }
+      this.noiseBuffer = buf
+    } catch {}
     this.unlocked = true
+    this.startMusicLoop()
+  }
+
+  startMusicLoop() {
+    if (this.musicTimer) clearInterval(this.musicTimer)
+    const track = AFROBEAT_TRACKS[this.trackIdx % AFROBEAT_TRACKS.length]
+    const stepMs = Math.round((60 / track.bpm / 4) * 1000)
+    this.musicTimer = setInterval(() => this.playMusicStep(), stepMs)
+  }
+
+  nextTrack() {
+    this.unlock()
+    this.trackIdx = (this.trackIdx + 1) % AFROBEAT_TRACKS.length
+    this.stepIdx = 0
+    this.startMusicLoop()
+    return AFROBEAT_TRACKS[this.trackIdx]
+  }
+
+  playMusicStep() {
+    if (!this.unlocked || this.muted || this.pausedByPlatform || !this.ctx) return
+    if (this.ctx.state === "suspended") return
+    try {
+      const track = AFROBEAT_TRACKS[this.trackIdx % AFROBEAT_TRACKS.length]
+      const s = this.stepIdx % 16
+      const now = this.ctx.currentTime
+
+      // 1. Kick drum
+      if (track.kick[s]) {
+        const osc = this.ctx.createOscillator()
+        const gain = this.ctx.createGain()
+        osc.type = "sine"
+        osc.frequency.setValueAtTime(125, now)
+        osc.frequency.exponentialRampToValueAtTime(42, now + 0.11)
+        gain.gain.setValueAtTime(0.055, now)
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12)
+        osc.connect(gain)
+        gain.connect(this.ctx.destination)
+        osc.start(now)
+        osc.stop(now + 0.12)
+      }
+
+      // 2. Syncopated Afrobeats Woodblock / Rimshot Clave
+      if (track.rim[s]) {
+        const osc = this.ctx.createOscillator()
+        const gain = this.ctx.createGain()
+        osc.type = "triangle"
+        osc.frequency.setValueAtTime(track.style === "highlife" ? 920 : 780, now)
+        osc.frequency.exponentialRampToValueAtTime(340, now + 0.045)
+        gain.gain.setValueAtTime(0.032, now)
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05)
+        osc.connect(gain)
+        gain.connect(this.ctx.destination)
+        osc.start(now)
+        osc.stop(now + 0.05)
+      }
+
+      // 3. Crisp Shekere Shaker (filtered noise)
+      if (track.shaker[s] && this.noiseBuffer) {
+        const src = this.ctx.createBufferSource()
+        src.buffer = this.noiseBuffer
+        const filter = this.ctx.createBiquadFilter()
+        filter.type = "bandpass"
+        filter.frequency.value = s % 4 === 2 ? 7800 : 6200
+        const gain = this.ctx.createGain()
+        gain.gain.setValueAtTime(s % 2 === 0 ? 0.018 : 0.01, now)
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.045)
+        src.connect(filter)
+        filter.connect(gain)
+        gain.connect(this.ctx.destination)
+        src.start(now)
+      }
+
+      // 4. Bass / Amapiano Log Drum
+      const bassFreq = track.bass[s]
+      if (bassFreq > 0) {
+        const osc = this.ctx.createOscillator()
+        const gain = this.ctx.createGain()
+        if (track.style === "amapiano") {
+          // Resonant pitch-drop Amapiano Log Drum!
+          osc.type = "triangle"
+          osc.frequency.setValueAtTime(bassFreq * 2.4, now)
+          osc.frequency.exponentialRampToValueAtTime(bassFreq, now + 0.045)
+          gain.gain.setValueAtTime(0.055, now)
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.21)
+          osc.connect(gain)
+          gain.connect(this.ctx.destination)
+          osc.start(now)
+          osc.stop(now + 0.22)
+        } else {
+          osc.type = "sine"
+          osc.frequency.setValueAtTime(bassFreq, now)
+          gain.gain.setValueAtTime(0.048, now)
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18)
+          osc.connect(gain)
+          gain.connect(this.ctx.destination)
+          osc.start(now)
+          osc.stop(now + 0.19)
+        }
+      }
+
+      // 5. Warm Rhodes Chords on step 0 & step 6 of each bar
+      if (s === 0 || s === 6) {
+        const chord = track.chords[this.barIdx % track.chords.length]
+        chord.forEach((f) => {
+          const osc = this.ctx.createOscillator()
+          const gain = this.ctx.createGain()
+          osc.type = "sine"
+          osc.frequency.setValueAtTime(f, now)
+          gain.gain.setValueAtTime(0.012, now)
+          gain.gain.exponentialRampToValueAtTime(0.0008, now + 0.32)
+          osc.connect(gain)
+          gain.connect(this.ctx.destination)
+          osc.start(now)
+          osc.stop(now + 0.33)
+        })
+      }
+
+      // 6. Highlife Pluck / Afrika Shrine Horn Melody
+      const melFreq = track.melody[s]
+      if (melFreq > 0) {
+        const osc = this.ctx.createOscillator()
+        const gain = this.ctx.createGain()
+        osc.type = track.style === "highlife" ? "sawtooth" : "triangle"
+        osc.frequency.setValueAtTime(melFreq, now)
+        gain.gain.setValueAtTime(track.style === "highlife" ? 0.016 : 0.022, now)
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15)
+        osc.connect(gain)
+        gain.connect(this.ctx.destination)
+        osc.start(now)
+        osc.stop(now + 0.16)
+      }
+
+      this.stepIdx += 1
+      if (this.stepIdx % 16 === 0) {
+        this.barIdx += 1
+      }
+    } catch {}
   }
 
   setPlatformPaused(paused) {
@@ -1712,10 +1929,19 @@ function wireEvents() {
     switchScreen("screen-shop")
   }
 
+  if ($("btn-radio-track")) {
+    $("btn-radio-track").onclick = () => {
+      const tr = sfx.nextTrack()
+      $("btn-radio-track").textContent = tr.shortLabel
+      showToast(`🎶 Buka Radio: ${tr.name}`)
+    }
+  }
+
   $("btn-sound").onclick = () => {
     sfx.unlock()
     const muted = sfx.toggleMute()
     $("btn-sound").textContent = muted ? "🔇" : "🔊"
+    showToast(muted ? "🔇 Audio & Afrobeats Radio Muted" : `🔊 Playing: ${AFROBEAT_TRACKS[sfx.trackIdx].name}`)
   }
 
   $("btn-sandbox-drawer").onclick = () => {
